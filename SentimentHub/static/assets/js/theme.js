@@ -9,43 +9,57 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fonction pour définir le thème
   const setTheme = (isDark) => {
     if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
       body.classList.remove('light-theme');
       body.classList.add('dark-theme');
-      themeSwitch.checked = true;
+      localStorage.setItem('theme', 'dark');
+      
+      // Synchroniser tous les switches de thème
+      document.querySelectorAll('[id*="theme-switch"]').forEach(switch => {
+        switch.checked = true;
+      });
     } else {
+      document.documentElement.setAttribute('data-theme', 'light');
       body.classList.remove('dark-theme');
       body.classList.add('light-theme');
-      themeSwitch.checked = false;
+      localStorage.setItem('theme', 'light');
+      
+      // Synchroniser tous les switches de thème
+      document.querySelectorAll('[id*="theme-switch"]').forEach(switch => {
+        switch.checked = false;
+      });
     }
-  };
-  
-  // Récupérer la préférence de thème enregistrée
-  const savedTheme = localStorage.getItem('theme');
-  localStorage.setItem('theme', 'dark');
 
-  // Appliquer le thème sauvegardé ou utiliser la préférence du système
-  if (savedTheme) {
-    setTheme(savedTheme === 'dark');
-  } else {
-    // Utiliser la préférence du système si disponible
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setTheme(prefersDark);
-  }
+    // Émettre un événement personnalisé pour la mise à jour des graphiques
+    window.dispatchEvent(new CustomEvent('themeChanged', { 
+      detail: { isDark } 
+    }));
+  };
+
+  // Détecter la préférence système
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
   
-  // Écouteur d'événement pour le changement de thème
-  themeSwitch.addEventListener('change', () => {
-    const isDark = themeSwitch.checked;
-    setTheme(isDark);
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    console.log('Thème changé :', isDark ? 'dark' : 'light');
+  // Récupérer le thème sauvegardé ou utiliser la préférence système
+  const savedTheme = localStorage.getItem('theme');
+  const initialTheme = savedTheme || (prefersDark.matches ? 'dark' : 'light');
+  
+  // Appliquer le thème initial
+  setTheme(initialTheme === 'dark');
+
+  // Écouter les changements de thème
+  document.querySelectorAll('[id*="theme-switch"]').forEach(switch => {
+    switch.addEventListener('change', (e) => {
+      setTheme(e.target.checked);
+    });
   });
-  
-  // Écouter les changements de préférence du système
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    // Ne mettre à jour que si l'utilisateur n'a pas de préférence explicite
+
+  // Écouter les changements de préférence système
+  prefersDark.addEventListener('change', (e) => {
     if (!localStorage.getItem('theme')) {
       setTheme(e.matches);
     }
   });
-});
 
+  // Exposer la fonction setTheme globalement pour une utilisation dans d'autres modules
+  window.setTheme = setTheme;
+});
