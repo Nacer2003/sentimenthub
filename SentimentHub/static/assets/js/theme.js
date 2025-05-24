@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('theme', 'dark');
       
       // Synchroniser tous les switches de thème
-      document.querySelectorAll('[id*="theme-switch"]').forEach(switch => {
-        switch.checked = true;
+      document.querySelectorAll('[id*="theme-switch"]').forEach(themeSwitchElement => {
+        themeSwitchElement.checked = true;
       });
     } else {
       document.documentElement.setAttribute('data-theme', 'light');
@@ -25,8 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('theme', 'light');
       
       // Synchroniser tous les switches de thème
-      document.querySelectorAll('[id*="theme-switch"]').forEach(switch => {
-        switch.checked = false;
+      document.querySelectorAll('[id*="theme-switch"]').forEach(themeSwitchElement => {
+        themeSwitchElement.checked = false;
       });
     }
 
@@ -47,8 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setTheme(initialTheme === 'dark');
 
   // Écouter les changements de thème
-  document.querySelectorAll('[id*="theme-switch"]').forEach(switch => {
-    switch.addEventListener('change', (e) => {
+  document.querySelectorAll('[id*="theme-switch"]').forEach(themeSwitchElement => {
+    themeSwitchElement.addEventListener('change', (e) => {
       setTheme(e.target.checked);
     });
   });
