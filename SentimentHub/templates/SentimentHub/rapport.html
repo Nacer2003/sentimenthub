@@ -1,0 +1,678 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport d'Analyse - SentimentHub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="stylesheet" href="{% static 'assets/css/rapport.css' %}">
+</head>
+<body class="light-theme">
+    
+
+    <!-- En-tête -->
+    <header class="header">
+        <div class="container">
+            <!-- Bascule de thème -->
+        <div class="theme-toggle">
+            <span id="themeIcon"><i class="fas fa-moon"></i></span>
+            <label class="switch">
+                <input type="checkbox" id="themeSwitch">
+                <span class="slider round"></span>
+            </label>
+        </div>
+            <h1>Découvrez SentimentHub en action</h1>
+            <div class="header-underline"></div>
+            <p>Explorez un exemple d'analyse sur des données de démonstration</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Onglets -->
+        <div class="tabs">
+            <div class="tab-header">
+                <button class="tab-btn active" data-tab="overview">Vue d'ensemble</button>
+                <button class="tab-btn" data-tab="details">Détails</button>
+                <button class="tab-btn" data-tab="keywords">Mots-clés</button>
+            </div>
+
+            <div class="tab-content">
+                <!-- Vue d'ensemble -->
+                <div class="tab-pane active" id="overview-tab">
+                    <div class="chart-container">
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
+
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-color positive"></div>
+                            <span>Positif</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color neutral"></div>
+                            <span>Neutre</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color negative"></div>
+                            <span>Négatif</span>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card positive">
+                            <h3 class="stat-title">Positifs</h3>
+                            <div class="stat-value">{{ stats.positive_count }}%</div>
+                            <div class="stat-change up">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>+5% vs période précédente</span>
+                            </div>
+                        </div>
+                        <div class="stat-card neutral">
+                            <h3 class="stat-title">Neutres</h3>
+                            <div class="stat-value">{{ stats.neutral_count }}%</div>
+                            <div class="stat-change neutral">
+                                <i class="fas fa-equals"></i>
+                                <span>0% vs période précédente</span>
+                            </div>
+                        </div>
+                        <div class="stat-card negative">
+                            <h3 class="stat-title">Négatifs</h3>
+                            <div class="stat-value">{{ stats.negative_count }}%</div>
+                            <div class="stat-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                <span>-3% vs période précédente</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Détails -->
+                <div class="tab-pane" id="details-tab">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Commentaire</th>
+                                    <th>Sentiment</th>
+                                    <th>Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in results %}
+                                <tr>
+                                    <td>{{ row.texte }}</td>
+                                    <td>
+                                        <span class="badge {{ row.sentiment|lower }}">
+                                            {% if row.sentiment == 'Positif' %}
+                                                <i class="fas fa-smile"></i>
+                                            {% elif row.sentiment == 'Negatif' %}
+                                                <i class="fas fa-frown"></i>
+                                            {% else %}
+                                                <i class="fas fa-meh"></i>
+                                            {% endif %}
+                                            {{ row.sentiment }}
+                                        </span>
+                                    </td>
+                                    <td>{{ row.polarité }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3">Aucune donnée disponible</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Mots-clés -->
+                <div class="tab-pane" id="keywords-tab">
+                    <div class="word-clouds">
+                        <div class="word-cloud positive">
+                            <h3>Mots positifs fréquents</h3>
+                            <div class="word-list">
+                                <div class="word-item">excellent</div>
+                                <div class="word-item">parfait</div>
+                                <div class="word-item">qualité</div>
+                                <div class="word-item">recommande</div>
+                                <div class="word-item">facile</div>
+                                <div class="word-item">pratique</div>
+                                <div class="word-item">efficace</div>
+                                <div class="word-item">rapide</div>
+                                <div class="word-item">satisfait</div>
+                                <div class="word-item">génial</div>
+                                <div class="word-item">super</div>
+                                <div class="word-item">bien</div>
+                            </div>
+                        </div>
+                        <div class="word-cloud negative">
+                            <h3>Mots négatifs fréquents</h3>
+                            <div class="word-list">
+                                <div class="word-item">problème</div>
+                                <div class="word-item">défaut</div>
+                                <div class="word-item">lent</div>
+                                <div class="word-item">difficile</div>
+                                <div class="word-item">déçu</div>
+                                <div class="word-item">mauvais</div>
+                                <div class="word-item">cher</div>
+                                <div class="word-item">compliqué</div>
+                                <div class="word-item">fragile</div>
+                                <div class="word-item">bruit</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button id="loadMoreBtn" class="btn btn-secondary">
+                <i class="fas fa-sync-alt"></i>
+                <span>Charger d'autres données</span>
+            </button>
+            <button id="exportBtn" class="btn btn-primary">
+                <i class="fas fa-download"></i>
+                <span>Exporter</span>
+            </button>
+        </div>
+
+        <!-- Lien de retour -->
+        <a href="{% url 'upload_csv' %}" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour à l'analyse</span>
+        </a>
+    </div>
+    <!-- Modal d'exportation -->
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Exporter les résultats</h2>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <div class="export-option selected" data-format="csv">
+                        <div class="export-icon">
+                            <i class="fas fa-file-csv" style="color: #2563eb;"></i>
+                        </div>
+                        <div class="export-title">CSV</div>
+                        <div class="export-desc">Données brutes avec scores détaillés</div>
+                    </div>
+                    <div class="export-option" data-format="pdf">
+                        <div class="export-icon">
+                            <i class="fas fa-file-pdf" style="color: #2563eb;"></i>
+                        </div>
+                        <div class="export-title">PDF</div>
+                        <div class="export-desc">Rapport complet avec graphiques</div>
+                    </div>
+                    <div class="export-option" data-format="images">
+                        <div class="export-icon">
+                            <i class="fas fa-file-image" style="color: #2563eb;"></i>
+                        </div>
+                        <div class="export-title">Images</div>
+                        <div class="export-desc">Graphiques en haute résolution</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelExport">Annuler</button>
+                <button class="btn btn-primary" id="confirmExport">
+                    <i class="fas fa-download"></i>
+                    Exporter
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gestion des onglets
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+        
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.getAttribute('data-tab');
+                    
+                    // Activer le bouton d'onglet
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // Afficher le contenu de l'onglet
+                    tabPanes.forEach(pane => pane.classList.remove('active'));
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+        
+            // Gestion du thème clair/sombre
+            const themeSwitch = document.getElementById('themeSwitch');
+            const themeIcon = document.getElementById('themeIcon');
+            
+            // Vérifier si un thème est déjà enregistré
+            const savedTheme = localStorage.getItem('theme') || 'light-theme';
+            document.body.classList.add(savedTheme);
+            themeSwitch.checked = savedTheme === 'dark-theme';
+            updateThemeIcon();
+            
+            themeSwitch.addEventListener('change', function() {
+                if (this.checked) {
+                    document.body.classList.remove('light-theme');
+                    document.body.classList.add('dark-theme');
+                    localStorage.setItem('theme', 'dark-theme');
+                } else {
+                    document.body.classList.remove('dark-theme');
+                    document.body.classList.add('light-theme');
+                    localStorage.setItem('theme', 'light-theme');
+                }
+                updateThemeIcon();
+                updateChartColors();
+            });
+            
+            function updateThemeIcon() {
+                if (themeSwitch.checked) {
+                    themeIcon.innerHTML = '<i class="fas fa-sun"></i>';
+                } else {
+                    themeIcon.innerHTML = '<i class="fas fa-moon"></i>';
+                }
+            }
+            
+            
+
+            // Initialisation du graphique
+            const ctx = document.getElementById('sentimentChart').getContext('2d');
+            let sentimentChart;
+        
+            function initChart() {
+                const isDarkTheme = document.body.classList.contains('dark-theme');
+                const textColor = isDarkTheme ? '#ffffff' : '#212121';
+        
+                sentimentChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Positif', 'Neutre', 'Négatif'],
+                        datasets: [{
+                            data: [{{ stats.positive_count }}, {{ stats.neutral_count }}, {{ stats.negative_count }}],
+                            backgroundColor: [
+                                '#4caf50',  // vert pour positif
+                                '#3b82f6',  // bleu pour neutre
+                                '#ef4444'   // rouge pour négatif
+                            ],
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.label + ': ' + context.raw + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        
+            function updateChartColors() {
+                if (sentimentChart) {
+                    sentimentChart.destroy();
+                }
+                initChart();
+            }
+        
+            initChart();
+        
+            // Gestion de la modal d'exportation
+            const exportBtn = document.getElementById('exportBtn');
+            const exportModal = document.getElementById('exportModal');
+            const closeModal = document.getElementById('closeModal');
+            const cancelExport = document.getElementById('cancelExport');
+            const confirmExport = document.getElementById('confirmExport');
+            const exportOptions = document.querySelectorAll('.export-option');
+        
+            // Ouvrir la modale
+            exportBtn.addEventListener('click', function() {
+                exportModal.classList.add('active');
+            });
+        
+            // Fermer la modale
+            function closeExportModal() {
+                exportModal.classList.remove('active');
+            }
+        
+            closeModal.addEventListener('click', closeExportModal);
+            cancelExport.addEventListener('click', closeExportModal);
+        
+            // Sélection du format d'exportation
+            let selectedFormat = 'csv';
+        
+            exportOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    exportOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedFormat = this.getAttribute('data-format');
+                });
+            });
+        
+            // Exportation
+            confirmExport.addEventListener('click', function() {
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportation...';
+                
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-download"></i> Exporter';
+                    closeExportModal();
+                    
+                    switch(selectedFormat) {
+                        case 'csv':
+                            exportCSV();
+                            break;
+                        case 'pdf':
+                            exportPDF();
+                            break;
+                        case 'images':
+                            exportImages();
+                            break;
+                    }
+                }, 1500);
+            });
+        
+            // Fonction pour exporter en CSV
+            function exportCSV() {
+                // Récupérer les données du tableau
+                const table = document.querySelector('#details-tab table');
+                if (!table) {
+                    alert("Aucune donnée à exporter.");
+                    return;
+                }
+        
+                // Créer l'en-tête du CSV
+                let csvContent = "data:text/csv;charset=utf-8,";
+                
+                // Ajouter l'en-tête du tableau
+                const headers = [];
+                table.querySelectorAll('thead th').forEach(th => {
+                    headers.push(th.textContent.trim());
+                });
+                csvContent += headers.join(',') + '\n';
+                
+                // Ajouter les lignes de données
+                table.querySelectorAll('tbody tr').forEach(tr => {
+                    const row = [];
+                    tr.querySelectorAll('td').forEach((td, index) => {
+                        // Pour la colonne sentiment, extraire juste le texte (Positif, Neutre, Négatif)
+                        if (index === 1) {
+                            const sentiment = td.textContent.trim().replace(/[\n\r]+/g, '').replace(/\s+/g, ' ');
+                            row.push(sentiment);
+                        } else {
+                            // Échapper les guillemets et ajouter des guillemets autour du texte
+                            let cellText = td.textContent.trim().replace(/"/g, '""');
+                            row.push(`"${cellText}"`);
+                        }
+                    });
+                    csvContent += row.join(',') + '\n';
+                });
+                
+                // Créer un lien de téléchargement
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "analyse_sentiments.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        
+            // Fonction pour exporter en PDF
+            function exportPDF() {
+                // Vérifier si jsPDF est disponible
+                if (typeof jspdf === 'undefined') {
+                    // Charger dynamiquement jsPDF si nécessaire
+                    const script1 = document.createElement('script');
+                    script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                    document.head.appendChild(script1);
+                    
+                    const script2 = document.createElement('script');
+                    script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js';
+                    script2.onload = function() {
+                        setTimeout(generatePDF, 1000); // Attendre que les scripts soient chargés
+                    };
+                    document.head.appendChild(script2);
+                } else {
+                    generatePDF();
+                }
+            }
+        
+            function generatePDF() {
+                try {
+                    // Créer un nouveau document PDF
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    // Ajouter le titre
+                    doc.setFontSize(18);
+                    doc.text("Rapport d'Analyse de Sentiments", 14, 22);
+                    
+                    // Ajouter la date
+                    doc.setFontSize(12);
+                    doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 30);
+                    
+                    // Ajouter les statistiques
+                    doc.setFontSize(14);
+                    doc.text("Statistiques", 14, 40);
+                    
+                    doc.setFontSize(12);
+                    doc.text(`Positifs: ${document.querySelector('.stat-card.positive .stat-value').textContent}`, 14, 50);
+                    doc.text(`Neutres: ${document.querySelector('.stat-card.neutral .stat-value').textContent}`, 14, 58);
+                    doc.text(`Négatifs: ${document.querySelector('.stat-card.negative .stat-value').textContent}`, 14, 66);
+                    
+                    // Ajouter le graphique
+                    const canvas = document.getElementById('sentimentChart');
+                    const imgData = canvas.toDataURL('image/png');
+                    doc.addImage(imgData, 'PNG', 70, 40, 80, 80);
+                    
+                    // Ajouter le tableau de données
+                    doc.setFontSize(14);
+                    doc.text("Détails des commentaires", 14, 130);
+                    
+                    // Récupérer les données du tableau
+                    const table = document.querySelector('#details-tab table');
+                    if (table) {
+                        const tableData = [];
+                        const tableHeaders = [];
+                        
+                        // Récupérer les en-têtes
+                        table.querySelectorAll('thead th').forEach(th => {
+                            tableHeaders.push(th.textContent.trim());
+                        });
+                        
+                        // Récupérer les données (limiter à 20 lignes pour éviter un PDF trop long)
+                        let rowCount = 0;
+                        table.querySelectorAll('tbody tr').forEach(tr => {
+                            if (rowCount < 20) {
+                                const rowData = [];
+                                tr.querySelectorAll('td').forEach((td, index) => {
+                                    if (index === 1) {
+                                        // Pour la colonne sentiment, extraire juste le texte
+                                        const sentiment = td.textContent.trim().replace(/[\n\r]+/g, '').replace(/\s+/g, ' ');
+                                        rowData.push(sentiment);
+                                    } else {
+                                        rowData.push(td.textContent.trim());
+                                    }
+                                });
+                                tableData.push(rowData);
+                                rowCount++;
+                            }
+                        });
+                        
+                        // Ajouter le tableau au PDF
+                        doc.autoTable({
+                            head: [tableHeaders],
+                            body: tableData,
+                            startY: 140,
+                            margin: { top: 10 },
+                            styles: { overflow: 'linebreak' },
+                            columnStyles: {
+                                0: { cellWidth: 100 }, // Commentaire
+                                1: { cellWidth: 40 },  // Sentiment
+                                2: { cellWidth: 30 }   // Score
+                            },
+                            headStyles: {
+                                fillColor: [37, 99, 235], // Couleur d'en-tête (bleu)
+                                textColor: 255,
+                                fontStyle: 'bold'
+                            }
+                        });
+                        
+                        // Ajouter une note si le tableau est tronqué
+                        if (table.querySelectorAll('tbody tr').length > 20) {
+                            const finalY = doc.lastAutoTable.finalY || 200;
+                            doc.text("Note: Seuls les 20 premiers commentaires sont affichés dans ce rapport.", 14, finalY + 10);
+                        }
+                    }
+                    
+                    // Ajouter les mots-clés
+                    const finalY = doc.lastAutoTable ? (doc.lastAutoTable.finalY + 20) : 200;
+                    
+                    // Vérifier si on a besoin d'une nouvelle page
+                    if (finalY > 250) {
+                        doc.addPage();
+                        doc.setFontSize(14);
+                        doc.text("Mots-clés fréquents", 14, 20);
+                        
+                        // Mots positifs
+                        doc.setFontSize(12);
+                        doc.text("Mots positifs:", 14, 30);
+                        let positiveWords = "";
+                        document.querySelectorAll('.word-cloud.positive .word-item').forEach((item, index) => {
+                            if (index < 10) {
+                                positiveWords += item.textContent + ", ";
+                            }
+                        });
+                        doc.setFontSize(10);
+                        doc.text(positiveWords.slice(0, -2), 14, 40, { maxWidth: 180 });
+                        
+                        // Mots négatifs
+                        doc.setFontSize(12);
+                        doc.text("Mots négatifs:", 14, 60);
+                        let negativeWords = "";
+                        document.querySelectorAll('.word-cloud.negative .word-item').forEach((item, index) => {
+                            if (index < 10) {
+                                negativeWords += item.textContent + ", ";
+                            }
+                        });
+                        doc.setFontSize(10);
+                        doc.text(negativeWords.slice(0, -2), 14, 70, { maxWidth: 180 });
+                    } else {
+                        doc.setFontSize(14);
+                        doc.text("Mots-clés fréquents", 14, finalY);
+                        
+                        // Mots positifs
+                        doc.setFontSize(12);
+                        doc.text("Mots positifs:", 14, finalY + 10);
+                        let positiveWords = "";
+                        document.querySelectorAll('.word-cloud.positive .word-item').forEach((item, index) => {
+                            if (index < 10) {
+                                positiveWords += item.textContent + ", ";
+                            }
+                        });
+                        doc.setFontSize(10);
+                        doc.text(positiveWords.slice(0, -2), 14, finalY + 20, { maxWidth: 180 });
+                        
+                        // Mots négatifs
+                        doc.setFontSize(12);
+                        doc.text("Mots négatifs:", 14, finalY + 40);
+                        let negativeWords = "";
+                        document.querySelectorAll('.word-cloud.negative .word-item').forEach((item, index) => {
+                            if (index < 10) {
+                                negativeWords += item.textContent + ", ";
+                            }
+                        });
+                        doc.setFontSize(10);
+                        doc.text(negativeWords.slice(0, -2), 14, finalY + 50, { maxWidth: 180 });
+                    }
+                    
+                    // Ajouter le pied de page
+                    const pageCount = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= pageCount; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(10);
+                        doc.text(`Page ${i} sur ${pageCount} - SentimentHub © ${new Date().getFullYear()}`, 14, doc.internal.pageSize.height - 10);
+                    }
+                    
+                    // Enregistrer le PDF
+                    doc.save("analyse_sentiments.pdf");
+                } catch (error) {
+                    console.error("Erreur lors de la génération du PDF:", error);
+                    alert("Une erreur est survenue lors de la génération du PDF. Veuillez réessayer.");
+                }
+            }
+        
+            // Fonction pour exporter les images
+            function exportImages() {
+                // Exporter le graphique
+                const canvas = document.getElementById('sentimentChart');
+                if (!canvas) {
+                    alert("Graphique non disponible.");
+                    return;
+                }
+                
+                // Créer un zip si plusieurs images sont à exporter
+                const zip = new JSZip();
+                
+                // Ajouter le graphique principal
+                const chartImage = canvas.toDataURL('image/png');
+                
+                // Option 1: Télécharger directement l'image
+                const link = document.createElement('a');
+                link.href = chartImage;
+                link.download = 'graphique_sentiments.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Option 2: Créer une capture d'écran de la section statistiques
+                html2canvas(document.querySelector('.stats-grid')).then(canvas => {
+                    const statsImage = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = statsImage;
+                    link.download = 'statistiques_sentiments.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }).catch(error => {
+                    console.error("Erreur lors de la capture des statistiques:", error);
+                });
+            }
+        
+            // Gestion du bouton "Charger d'autres données"
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+        
+            loadMoreBtn.addEventListener('click', function() {
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Chargement...</span>';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-sync-alt"></i> <span>Charger d\'autres données</span>';
+                    alert('Aucune nouvelle donnée disponible pour le moment.');
+                }, 1500);
+            });
+        });
+    </script>
+</body>
+</html>
