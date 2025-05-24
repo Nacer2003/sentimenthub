@@ -639,11 +639,9 @@ a:hover {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background-color: var(--surface);
     padding: 0.5rem;
     border-radius: var(--radius-round);
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
+    
 }
 
 #themeIcon {
